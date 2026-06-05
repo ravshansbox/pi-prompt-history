@@ -1,0 +1,27 @@
+{
+  "name": "pi-prompt-history",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Prompt history extension for pi — shell-style Up/Down recall and Ctrl+R reverse search over past prompts in the current folder",
+  "keywords": [
+    "pi-package"
+  ],
+  "files": [
+    "index.ts",
+    "history.ts",
+    "README.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
