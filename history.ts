@@ -6,7 +6,7 @@
  * built-in editor history (Up/Down recall) and back the Ctrl+R reverse search.
  */
 
-import * as fs from "node:fs";
+import { readFile } from "node:fs/promises";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 
 /** Maximum number of prompts to retain after filtering and de-duplication. */
@@ -63,10 +63,10 @@ function isRecallablePrompt(text: string): boolean {
  * Read a single session file and return its user prompts in file order
  * (oldest first within that session). Malformed lines are skipped.
  */
-function readPromptsFromFile(filePath: string): string[] {
+async function readPromptsFromFile(filePath: string): Promise<string[]> {
 	let raw: string;
 	try {
-		raw = fs.readFileSync(filePath, "utf-8");
+		raw = await readFile(filePath, "utf-8");
 	} catch {
 		return [];
 	}
@@ -116,7 +116,7 @@ export async function loadPromptHistory(options: LoadHistoryOptions): Promise<st
 
 	const all: string[] = [];
 	for (const session of ordered) {
-		for (const prompt of readPromptsFromFile(session.path)) {
+		for (const prompt of await readPromptsFromFile(session.path)) {
 			all.push(prompt);
 		}
 	}
