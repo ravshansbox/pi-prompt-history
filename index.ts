@@ -30,7 +30,7 @@ import {
 	Text,
 	type TUI,
 } from "@earendil-works/pi-tui";
-import { loadPromptHistory } from "./history.js";
+import { type HistoryScope, loadPromptHistory } from "./history.js";
 
 /**
  * Editor that mirrors pi's default editor but:
@@ -100,22 +100,27 @@ class HistoryEditor extends CustomEditor {
  * we drive fuzzy filtering ourselves and rebuild the list when the query
  * changes.
  */
-class ReverseSearch implements Component {
-	private query = "";
-	/** Prompts in newest-first order (the natural reverse-search direction). */
-	private readonly ordered: string[];
+export class ReverseSearch implements Component {
+	private query: string;
+	private scope: HistoryScope = "current";
+	private readonly prompts: Record<HistoryScope, string[] | undefined>;
+	private loadingAll = false;
 	private list: SelectList;
 	private readonly header: Text;
 
 	constructor(
-		prompts: string[],
+		currentPrompts: string[],
+		initialQuery: string,
+		private readonly loadAllPrompts: () => Promise<string[]>,
+		private readonly tui: TUI,
 		private readonly theme: Theme,
 		private readonly listTheme: SelectListTheme,
 		private readonly done: (value: string | null) => void,
 	) {
-		this.ordered = [...prompts].reverse();
+		this.query = initialQuery.trim();
+		this.prompts = { current: currentPrompts, all: undefined };
 		this.header = new Text("", 1, 0);
-		this.list = this.buildList(this.ordered);
+		this.list = this.buildList(this.filteredPrompts());
 		this.refreshHeader();
 	}
 
@@ -130,23 +135,56 @@ class ReverseSearch implements Component {
 		return list;
 	}
 
+	private renderTabs(): string {
+		return (["current", "all"] as const)
+			.map((scope) => {
+				const label = scope === "current" ? "Current folder" : "All folders";
+				const text = this.scope === scope ? `[${label}]` : label;
+				return this.scope === scope ? this.theme.fg("accent", text) : this.theme.fg("dim", text);
+			})
+			.join(this.theme.fg("dim", "  "));
+	}
+
 	private refreshHeader(): void {
 		const label = this.theme.fg("accent", "reverse-search");
 		const q =
 			this.query.length > 0
 				? this.theme.fg("toolOutput", this.query)
 				: this.theme.fg("dim", "(type to filter)");
-		const hint = this.theme.fg("dim", "  ↑↓ move · Enter load · Esc cancel");
-		this.header.setText(`${label}: ${q}${hint}`);
+		const loading = this.scope === "all" && this.loadingAll ? this.theme.fg("dim", " loading…") : "";
+		const hint = this.theme.fg("dim", "  Tab scope · ↑↓ move · Enter load · Esc cancel");
+		this.header.setText(`${this.renderTabs()}\n${label}: ${q}${loading}${hint}`);
+	}
+
+	private filteredPrompts(): string[] {
+		const ordered = [...(this.prompts[this.scope] ?? [])].reverse();
+		return this.query.trim().length === 0 ? ordered : fuzzyFilter(ordered, this.query, (p) => p);
 	}
 
 	private applyFilter(): void {
-		const filtered =
-			this.query.trim().length === 0
-				? this.ordered
-				: fuzzyFilter(this.ordered, this.query, (p) => p);
-		this.list = this.buildList(filtered);
+		this.list = this.buildList(this.filteredPrompts());
 		this.refreshHeader();
+	}
+
+	private switchScope(nextScope: HistoryScope): void {
+		this.scope = nextScope;
+		if (nextScope === "all" && !this.prompts.all && !this.loadingAll) {
+			this.loadingAll = true;
+			void this.loadAllPrompts()
+				.then((prompts) => {
+					this.prompts.all = prompts;
+				})
+				.catch(() => {
+					this.prompts.all = [];
+				})
+				.finally(() => {
+					this.loadingAll = false;
+					this.applyFilter();
+					this.tui.requestRender();
+				});
+		}
+		this.applyFilter();
+		this.tui.requestRender();
 	}
 
 	handleInput(data: string): void {
@@ -159,21 +197,31 @@ class ReverseSearch implements Component {
 			this.done(item ? item.value : null);
 			return;
 		}
+		if (matchesKey(data, "tab") || matchesKey(data, "right")) {
+			this.switchScope(this.scope === "current" ? "all" : "current");
+			return;
+		}
+		if (matchesKey(data, "shift+tab") || matchesKey(data, "left")) {
+			this.switchScope(this.scope === "current" ? "all" : "current");
+			return;
+		}
 		if (matchesKey(data, "up") || matchesKey(data, "down")) {
 			this.list.handleInput(data);
+			this.tui.requestRender();
 			return;
 		}
 		if (matchesKey(data, "backspace")) {
 			if (this.query.length > 0) {
 				this.query = this.query.slice(0, -1);
 				this.applyFilter();
+				this.tui.requestRender();
 			}
 			return;
 		}
-		// Printable characters extend the query.
 		if (data.length === 1 && data.charCodeAt(0) >= 32) {
 			this.query += data;
 			this.applyFilter();
+			this.tui.requestRender();
 			return;
 		}
 	}
@@ -188,6 +236,18 @@ class ReverseSearch implements Component {
 	}
 }
 
+function uniqueNewest(prompts: string[]): string[] {
+	const seen = new Set<string>();
+	const newestFirst: string[] = [];
+	for (let i = prompts.length - 1; i >= 0; i--) {
+		const prompt = prompts[i];
+		if (seen.has(prompt)) continue;
+		seen.add(prompt);
+		newestFirst.push(prompt);
+	}
+	return newestFirst.reverse();
+}
+
 export default function (pi: ExtensionAPI) {
 	let editor: HistoryEditor | undefined;
 
@@ -195,15 +255,24 @@ export default function (pi: ExtensionAPI) {
 		// custom() only renders in TUI mode; it is a no-op elsewhere, and hasUI
 		// is the version-stable guard across pi releases.
 		if (!ctx.hasUI || !editor) return;
-		const prompts = editor.getHistory();
-		if (prompts.length === 0) {
-			ctx.ui.notify("No prompt history yet", "info");
-			return;
-		}
+		const currentPrompts = editor.getHistory();
+		const initialQuery = ctx.ui.getEditorText().trim();
 
 		const listTheme = getSelectListTheme();
 		const result = await ctx.ui.custom<string | null>(
-			(_tui, theme, _kb, done) => new ReverseSearch(prompts, theme, listTheme, done),
+			(tui, theme, _kb, done) =>
+				new ReverseSearch(
+					currentPrompts,
+					initialQuery,
+					async () => {
+						const diskPrompts = await loadPromptHistory({ cwd: ctx.cwd, scope: "all" });
+						return uniqueNewest([...diskPrompts, ...(editor?.getHistory() ?? [])]);
+					},
+					tui,
+					theme,
+					listTheme,
+					done,
+				),
 		);
 
 		if (result) {

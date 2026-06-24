@@ -9,8 +9,10 @@ history. You can then recall them like a shell:
 - **Up / Down** — recall the previous / next prompt (when the cursor is at the
   top / bottom of the editor, exactly like bash/zsh)
 - **Ctrl+R** — reverse search: an incremental, fuzzy picker over your past
-  prompts. Type to filter, Up/Down to move, Enter to load the prompt into the
-  editor, Esc to cancel.
+  prompts. Type to filter, Up/Down to move, Tab to switch between current-folder
+  and all-folder history, Enter to load the prompt into the editor, Esc to
+  cancel. If the editor already contains text, Ctrl+R uses it as the initial
+  search query.
 
 ## Contents
 
@@ -19,14 +21,15 @@ history. You can then recall them like a shell:
 
 ## Behavior
 
-- **Scope:** only sessions started in the current folder are loaded
-  (via `SessionManager.list(cwd)`).
+- **Scope:** Up/Down recall and the default Ctrl+R tab use sessions started in
+  the current folder (via `SessionManager.list(cwd)`). Ctrl+R also has an
+  **All folders** tab backed by `SessionManager.listAll()`.
 - **Filtering:** empty input, slash-commands (`/...`), and inline bash
   (`!`, `!!`) are skipped, matching shell history hygiene.
 - **De-duplication:** global — repeated prompts collapse to their most recent
   position.
 - **Ordering:** chronological, so the first Up press recalls your newest prompt.
-- **Limits:** reverse search (Ctrl+R) covers up to the 500 most recent unique
+- **Limits:** each reverse search scope covers up to the 500 most recent unique
   prompts. Up/Down uses pi's built-in history ring, which keeps the most recent
   ~100 prompts plus anything you type during the session.
 - New prompts you submit during the session are added to history immediately.
@@ -80,7 +83,10 @@ After install and reload, in a folder that already has past pi sessions:
 
 - press **Up** on an empty prompt to recall your most recent prompt
 - press **Ctrl+R**, type a few characters, and confirm the matching prompts
-  appear; press Enter to load one into the editor
+  appear; press Tab to switch to all-folder history; press Enter to load one
+  into the editor
+- type part of a prompt in the editor, press **Ctrl+R**, and confirm that text is
+  used as the initial search query
 
 ## Upgrade
 

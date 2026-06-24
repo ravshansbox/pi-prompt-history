@@ -12,11 +12,15 @@ import { SessionManager } from "@earendil-works/pi-coding-agent";
 /** Maximum number of prompts to retain after filtering and de-duplication. */
 export const DEFAULT_HISTORY_LIMIT = 500;
 
+export type HistoryScope = "current" | "all";
+
 export interface LoadHistoryOptions {
 	/** Working directory whose sessions should be scanned. */
 	cwd: string;
 	/** Custom session directory (defaults to pi's standard location). */
 	sessionDir?: string;
+	/** Session scope to scan (default: current folder). */
+	scope?: HistoryScope;
 	/** Cap on the number of returned prompts (default: DEFAULT_HISTORY_LIMIT). */
 	limit?: number;
 }
@@ -105,7 +109,10 @@ export async function loadPromptHistory(options: LoadHistoryOptions): Promise<st
 
 	let sessions: Awaited<ReturnType<typeof SessionManager.list>>;
 	try {
-		sessions = await SessionManager.list(options.cwd, options.sessionDir);
+		sessions =
+			options.scope === "all"
+				? await SessionManager.listAll(options.sessionDir)
+				: await SessionManager.list(options.cwd, options.sessionDir);
 	} catch {
 		return [];
 	}
