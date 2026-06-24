@@ -1,7 +1,6 @@
 {
   "name": "pi-prompt-history",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Prompt history extension for pi — shell-style Up/Down recall and Ctrl+R reverse search over past prompts in the current folder",
   "license": "MIT",
