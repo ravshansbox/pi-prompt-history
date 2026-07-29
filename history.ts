@@ -6,31 +6,28 @@
  * built-in editor history (Up/Down recall) and back the Ctrl+R reverse search.
  */
 
-import { readFile } from "node:fs/promises";
-import { SessionManager } from "@earendil-works/pi-coding-agent";
+import { readFile } from 'node:fs/promises';
+import { SessionManager } from '@earendil-works/pi-coding-agent';
 
 /** Maximum number of prompts to retain after filtering and de-duplication. */
 export const DEFAULT_HISTORY_LIMIT = 500;
 
-export type HistoryScope = "current" | "all";
+export type HistoryScope = 'current' | 'all';
 
 export interface LoadHistoryOptions {
-	/** Working directory whose sessions should be scanned. */
-	cwd: string;
-	/** Custom session directory (defaults to pi's standard location). */
-	sessionDir?: string;
-	/** Session scope to scan (default: current folder). */
-	scope?: HistoryScope;
-	/** Cap on the number of returned prompts (default: DEFAULT_HISTORY_LIMIT). */
-	limit?: number;
+  /** Working directory whose sessions should be scanned. */
+  cwd: string;
+  /** Custom session directory (defaults to pi's standard location). */
+  sessionDir?: string;
+  /** Session scope to scan (default: current folder). */
+  scope?: HistoryScope;
+  /** Cap on the number of returned prompts (default: DEFAULT_HISTORY_LIMIT). */
+  limit?: number;
 }
 
 interface RawEntry {
-	type?: string;
-	message?: {
-		role?: string;
-		content?: unknown;
-	};
+  type?: string;
+  message?: { role?: string; content?: unknown };
 }
 
 /**
@@ -39,16 +36,20 @@ interface RawEntry {
  * ignored.
  */
 function extractText(content: unknown): string {
-	if (typeof content === "string") return content;
-	if (!Array.isArray(content)) return "";
-	const parts: string[] = [];
-	for (const block of content) {
-		if (block && typeof block === "object" && (block as { type?: string }).type === "text") {
-			const text = (block as { text?: unknown }).text;
-			if (typeof text === "string") parts.push(text);
-		}
-	}
-	return parts.join("\n");
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  const parts: string[] = [];
+  for (const block of content) {
+    if (
+      block &&
+      typeof block === 'object' &&
+      (block as { type?: string }).type === 'text'
+    ) {
+      const text = (block as { text?: unknown }).text;
+      if (typeof text === 'string') parts.push(text);
+    }
+  }
+  return parts.join('\n');
 }
 
 /**
@@ -56,11 +57,11 @@ function extractText(content: unknown): string {
  * skip empty input, slash-commands, and inline bash (`!` / `!!`).
  */
 function isRecallablePrompt(text: string): boolean {
-	const trimmed = text.trim();
-	if (trimmed.length === 0) return false;
-	if (trimmed.startsWith("/")) return false;
-	if (trimmed.startsWith("!")) return false;
-	return true;
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return false;
+  if (trimmed.startsWith('/')) return false;
+  if (trimmed.startsWith('!')) return false;
+  return true;
 }
 
 /**
@@ -68,29 +69,29 @@ function isRecallablePrompt(text: string): boolean {
  * (oldest first within that session). Malformed lines are skipped.
  */
 async function readPromptsFromFile(filePath: string): Promise<string[]> {
-	let raw: string;
-	try {
-		raw = await readFile(filePath, "utf-8");
-	} catch {
-		return [];
-	}
+  let raw: string;
+  try {
+    raw = await readFile(filePath, 'utf-8');
+  } catch {
+    return [];
+  }
 
-	const prompts: string[] = [];
-	for (const line of raw.split("\n")) {
-		const trimmed = line.trim();
-		if (!trimmed) continue;
-		let entry: RawEntry;
-		try {
-			entry = JSON.parse(trimmed) as RawEntry;
-		} catch {
-			continue;
-		}
-		if (entry.type !== "message") continue;
-		if (entry.message?.role !== "user") continue;
-		const text = extractText(entry.message.content);
-		if (isRecallablePrompt(text)) prompts.push(text.trim());
-	}
-	return prompts;
+  const prompts: string[] = [];
+  for (const line of raw.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    let entry: RawEntry;
+    try {
+      entry = JSON.parse(trimmed) as RawEntry;
+    } catch {
+      continue;
+    }
+    if (entry.type !== 'message') continue;
+    if (entry.message?.role !== 'user') continue;
+    const text = extractText(entry.message.content);
+    if (isRecallablePrompt(text)) prompts.push(text.trim());
+  }
+  return prompts;
 }
 
 /**
@@ -104,41 +105,44 @@ async function readPromptsFromFile(filePath: string): Promise<string[]> {
  * De-duplication is global and keeps the most recent occurrence of each
  * unique prompt.
  */
-export async function loadPromptHistory(options: LoadHistoryOptions): Promise<string[]> {
-	const limit = options.limit ?? DEFAULT_HISTORY_LIMIT;
+export async function loadPromptHistory(
+  options: LoadHistoryOptions,
+): Promise<string[]> {
+  const limit = options.limit ?? DEFAULT_HISTORY_LIMIT;
 
-	let sessions: Awaited<ReturnType<typeof SessionManager.list>>;
-	try {
-		sessions =
-			options.scope === "all"
-				? await SessionManager.listAll(options.sessionDir)
-				: await SessionManager.list(options.cwd, options.sessionDir);
-	} catch {
-		return [];
-	}
+  let sessions: Awaited<ReturnType<typeof SessionManager.list>>;
+  try {
+    sessions =
+      options.scope === 'all'
+        ? await SessionManager.listAll(options.sessionDir)
+        : await SessionManager.list(options.cwd, options.sessionDir);
+  } catch {
+    return [];
+  }
 
-	// SessionManager.list returns newest-modified first; reverse to oldest-first
-	// so the concatenated prompt stream is chronological.
-	const ordered = [...sessions].sort((a, b) => a.modified.getTime() - b.modified.getTime());
+  // SessionManager.list returns newest-modified first; reverse to oldest-first
+  // so the concatenated prompt stream is chronological.
+  const ordered = [...sessions].sort(
+    (a, b) => a.modified.getTime() - b.modified.getTime(),
+  );
 
-	const all: string[] = [];
-	for (const session of ordered) {
-		for (const prompt of await readPromptsFromFile(session.path)) {
-			all.push(prompt);
-		}
-	}
+  const all: string[] = [];
+  for (const session of ordered) {
+    for (const prompt of await readPromptsFromFile(session.path)) {
+      all.push(prompt);
+    }
+  }
 
-	// Global de-dup keeping the most recent occurrence. Walk from the end,
-	// collect first-seen (i.e. newest) prompts, then restore chronological order.
-	const seen = new Set<string>();
-	const newestFirst: string[] = [];
-	for (let i = all.length - 1; i >= 0; i--) {
-		const prompt = all[i];
-		if (seen.has(prompt)) continue;
-		seen.add(prompt);
-		newestFirst.push(prompt);
-		if (newestFirst.length >= limit) break;
-	}
+  // Global de-dup keeping the most recent occurrence. Walk from the end,
+  // collect first-seen (i.e. newest) prompts, then restore chronological order.
+  const seen = new Set<string>();
+  const newestFirst: string[] = [];
+  for (const prompt of [...all].reverse()) {
+    if (seen.has(prompt)) continue;
+    seen.add(prompt);
+    newestFirst.push(prompt);
+    if (newestFirst.length >= limit) break;
+  }
 
-	return newestFirst.reverse();
+  return newestFirst.reverse();
 }

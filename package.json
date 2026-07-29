@@ -1,5 +1,5 @@
 {
-  "name": "pi-prompt-history",
+  "name": "@ravshansbox/pi-prompt-history",
   "version": "0.1.0",
   "type": "module",
   "description": "Prompt history extension for pi — shell-style Up/Down recall and Ctrl+R reverse search over past prompts in the current folder",
@@ -8,11 +8,6 @@
     "type": "git",
     "url": "git+https://github.com/ravshansbox/pi-prompt-history.git"
   },
-  "keywords": [
-    "pi-package",
-    "pi-extension",
-    "prompt-history"
-  ],
   "files": [
     "index.ts",
     "history.ts",
@@ -29,9 +24,23 @@
     "@earendil-works/pi-tui": "*"
   },
   "devDependencies": {
+    "@types/node": "^26.1.2",
     "typescript": "^6.0.3"
   },
+  "homepage": "https://github.com/ravshansbox/pi-prompt-history#readme",
+  "bugs": {
+    "url": "https://github.com/ravshansbox/pi-prompt-history/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "prompt-history"
+  ],
   "scripts": {
-    "test": "node --test"
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck"
   }
 }
