@@ -30,7 +30,7 @@ import {
   Text,
   type TUI,
 } from '@earendil-works/pi-tui';
-import { type HistoryScope, loadPromptHistory } from './history.js';
+import { type HistoryScope, loadPromptHistory } from './history.ts';
 
 /**
  * Editor that mirrors pi's default editor but:

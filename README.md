@@ -16,8 +16,8 @@ history. You can then recall them like a shell:
 
 ## Contents
 
-- `index.ts` — extension entry point (custom editor + Ctrl+R overlay)
-- `history.ts` — past-session parsing and prompt extraction
+- `src/index.ts` — extension entry point (custom editor + Ctrl+R overlay)
+- `src/history.ts` — past-session parsing and prompt extraction
 
 ## Behavior
 
@@ -67,14 +67,14 @@ Clone and symlink if you prefer local development:
 ```bash
 git clone git@github.com:ravshansbox/pi-prompt-history.git ~/Projects/pi-prompt-history
 mkdir -p ~/.pi/agent/extensions/prompt-history
-ln -sf ~/Projects/pi-prompt-history/index.ts ~/.pi/agent/extensions/prompt-history/index.ts
-ln -sf ~/Projects/pi-prompt-history/history.ts ~/.pi/agent/extensions/prompt-history/history.ts
+ln -sf ~/Projects/pi-prompt-history/src/index.ts ~/.pi/agent/extensions/prompt-history/index.ts
+ln -sf ~/Projects/pi-prompt-history/src/history.ts ~/.pi/agent/extensions/prompt-history/history.ts
 ```
 
 Or load it for a single run while testing:
 
 ```bash
-pi -e ./index.ts
+pi -e ./src/index.ts
 ```
 
 ## Verify

@@ -1,31 +1,12 @@
 {
   "name": "@ravshansbox/pi-prompt-history",
-  "version": "0.1.0",
-  "type": "module",
+  "version": "0.2.0",
   "description": "Prompt history extension for pi — shell-style Up/Down recall and Ctrl+R reverse search over past prompts in the current folder",
   "license": "MIT",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ravshansbox/pi-prompt-history.git"
-  },
-  "files": [
-    "index.ts",
-    "history.ts",
-    "README.md",
-    "LICENSE"
-  ],
-  "pi": {
-    "extensions": [
-      "./index.ts"
-    ]
-  },
-  "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*"
-  },
-  "devDependencies": {
-    "@types/node": "^26.1.2",
-    "typescript": "^6.0.3"
   },
   "homepage": "https://github.com/ravshansbox/pi-prompt-history#readme",
   "bugs": {
@@ -39,6 +20,24 @@
     "pi-extension",
     "prompt-history"
   ],
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^6.0.3"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck"
