@@ -75,11 +75,7 @@ class HistoryEditor extends CustomEditor {
    */
   override addToHistory(text: string): void {
     const trimmed = text.trim();
-    if (
-      trimmed.length > 0 &&
-      !trimmed.startsWith('/') &&
-      !trimmed.startsWith('!')
-    ) {
+    if (trimmed.length > 0 && !trimmed.startsWith('/') && !trimmed.startsWith('!')) {
       const existing = this.promptHistory.indexOf(trimmed);
       if (existing !== -1) this.promptHistory.splice(existing, 1);
       this.promptHistory.push(trimmed);
@@ -144,9 +140,7 @@ export class ReverseSearch implements Component {
       .map((scope) => {
         const label = scope === 'current' ? 'Current folder' : 'All folders';
         const text = this.scope === scope ? `[${label}]` : label;
-        return this.scope === scope
-          ? this.theme.fg('accent', text)
-          : this.theme.fg('dim', text);
+        return this.scope === scope ? this.theme.fg('accent', text) : this.theme.fg('dim', text);
       })
       .join(this.theme.fg('dim', '  '));
   }
@@ -158,23 +152,14 @@ export class ReverseSearch implements Component {
         ? this.theme.fg('toolOutput', this.query)
         : this.theme.fg('dim', '(type to filter)');
     const loading =
-      this.scope === 'all' && this.loadingAll
-        ? this.theme.fg('dim', ' loading…')
-        : '';
-    const hint = this.theme.fg(
-      'dim',
-      '  Tab scope · ↑↓ move · Enter load · Esc cancel',
-    );
-    this.header.setText(
-      `${this.renderTabs()}\n${label}: ${q}${loading}${hint}`,
-    );
+      this.scope === 'all' && this.loadingAll ? this.theme.fg('dim', ' loading…') : '';
+    const hint = this.theme.fg('dim', '  Tab scope · ↑↓ move · Enter load · Esc cancel');
+    this.header.setText(`${this.renderTabs()}\n${label}: ${q}${loading}${hint}`);
   }
 
   private filteredPrompts(): string[] {
     const ordered = [...(this.prompts[this.scope] ?? [])].reverse();
-    return this.query.trim().length === 0
-      ? ordered
-      : fuzzyFilter(ordered, this.query, (p) => p);
+    return this.query.trim().length === 0 ? ordered : fuzzyFilter(ordered, this.query, (p) => p);
   }
 
   private applyFilter(): void {
@@ -284,10 +269,7 @@ export default function (pi: ExtensionAPI) {
               cwd: ctx.cwd,
               scope: 'all',
             });
-            return uniqueNewest([
-              ...diskPrompts,
-              ...(editor?.getHistory() ?? []),
-            ]);
+            return uniqueNewest([...diskPrompts, ...(editor?.getHistory() ?? [])]);
           },
           tui,
           theme,

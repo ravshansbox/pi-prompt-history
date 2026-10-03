@@ -40,11 +40,7 @@ function extractText(content: unknown): string {
   if (!Array.isArray(content)) return '';
   const parts: string[] = [];
   for (const block of content) {
-    if (
-      block &&
-      typeof block === 'object' &&
-      (block as { type?: string }).type === 'text'
-    ) {
+    if (block && typeof block === 'object' && (block as { type?: string }).type === 'text') {
       const text = (block as { text?: unknown }).text;
       if (typeof text === 'string') parts.push(text);
     }
@@ -105,9 +101,7 @@ async function readPromptsFromFile(filePath: string): Promise<string[]> {
  * De-duplication is global and keeps the most recent occurrence of each
  * unique prompt.
  */
-export async function loadPromptHistory(
-  options: LoadHistoryOptions,
-): Promise<string[]> {
+export async function loadPromptHistory(options: LoadHistoryOptions): Promise<string[]> {
   const limit = options.limit ?? DEFAULT_HISTORY_LIMIT;
 
   let sessions: Awaited<ReturnType<typeof SessionManager.list>>;
@@ -122,9 +116,7 @@ export async function loadPromptHistory(
 
   // SessionManager.list returns newest-modified first; reverse to oldest-first
   // so the concatenated prompt stream is chronological.
-  const ordered = [...sessions].sort(
-    (a, b) => a.modified.getTime() - b.modified.getTime(),
-  );
+  const ordered = [...sessions].sort((a, b) => a.modified.getTime() - b.modified.getTime());
 
   const all: string[] = [];
   for (const session of ordered) {
