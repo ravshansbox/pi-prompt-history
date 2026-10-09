@@ -5,7 +5,7 @@ Shell-style prompt history extension for pi.
 ## Install
 
 ```bash
-pi install git:github.com/ravshansbox/pi-prompt-history
+pi install npm:@ravshansbox/pi-prompt-history
 ```
 
 Add `-l` to install it in project settings.
