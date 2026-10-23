@@ -12,7 +12,7 @@ Add `-l` to install it in project settings.
 
 ## Usage
 
-When pi starts, this extension loads the user prompts from your previous sessions **in the current working directory** and seeds them into the editor's history. It only activates in interactive (TUI) mode.
+Pi loads the extension from `./index.ts`. When pi starts, it loads the user prompts from your previous sessions **in the current working directory** and seeds them into the editor's history. It only activates in interactive (TUI) mode.
 
 - **Up / Down** — recall the previous / next prompt (when the cursor is at the top / bottom of the editor, exactly like bash/zsh)
 - **Ctrl+R** — reverse search: an incremental, fuzzy picker over your past prompts. Type to filter, Up/Down to move, Tab to switch between current-folder and all-folder history, Enter to load the prompt into the editor, Esc to cancel. If the editor already contains text, Ctrl+R uses it as the initial search query.
