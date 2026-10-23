@@ -1,6 +1,6 @@
 {
   "name": "@ravshansbox/pi-prompt-history",
-  "version": "0.2.0",
+  "version": "0.0.0",
   "description": "Shell-style prompt history extension for pi",
   "license": "MIT",
   "type": "module",
