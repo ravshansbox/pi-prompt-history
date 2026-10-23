@@ -1,16 +1,3 @@
-/**
- * Prompt History - shell-style prompt recall for pi
- *
- * Seeds pi's built-in editor history with the user prompts from previous
- * sessions in the current folder, so Up/Down recall works across restarts
- * (just like a shell). Adds Ctrl+R reverse search: an incremental, fuzzy
- * picker over the same history that drops the chosen prompt into the editor.
- *
- * - Up / Down  : recall previous / next prompt (pi's native edge-aware history)
- * - Ctrl+R     : open reverse search; type to filter, Up/Down to move,
- *                Enter to load into the editor, Esc to cancel
- */
-
 import {
   CustomEditor,
   getSelectListTheme,
@@ -32,47 +19,23 @@ import {
 } from '@earendil-works/pi-tui';
 import { type HistoryScope, loadPromptHistory } from './src/history.ts';
 
-/**
- * Editor that mirrors pi's default editor but:
- *   1. seeds prompt history from disk (via setHistory),
- *   2. keeps a full-size history array for Ctrl+R reverse search, and
- *   3. opens reverse search on Ctrl+R.
- *
- * Up/Down recall is provided by the base Editor, which walks its built-in
- * history ring when the cursor is at the top/bottom visual line. pi's own
- * submit path already calls addToHistory() for each new prompt, so we simply
- * override addToHistory() as the single chokepoint that feeds both the base
- * ring and our reverse-search array. (We intentionally do not wrap onSubmit:
- * pi overwrites a custom editor's onSubmit with its own handler when the
- * editor is installed.)
- */
 class HistoryEditor extends CustomEditor {
-  /** Newest-last list of unique prompts backing reverse search. */
   private promptHistory: string[] = [];
-  /** Opens the reverse-search overlay; supplied by the extension factory. */
   onReverseSearch?: () => void;
 
   constructor(tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) {
     super(tui, theme, keybindings);
   }
 
-  /** Seed history from disk (oldest first) into both the ring and our array. */
   setHistory(prompts: string[]): void {
     this.promptHistory = [];
     for (const prompt of prompts) this.addToHistory(prompt);
   }
 
-  /** Current prompt history, newest last. */
   getHistory(): string[] {
     return this.promptHistory;
   }
 
-  /**
-   * Single chokepoint for history. pi calls this on every submitted prompt
-   * and we also call it while seeding. We record into our reverse-search
-   * array (global de-dup, newest position wins) and delegate to the base
-   * editor's Up/Down history ring.
-   */
   override addToHistory(text: string): void {
     const trimmed = text.trim();
     if (trimmed.length > 0 && !trimmed.startsWith('/') && !trimmed.startsWith('!')) {
@@ -92,14 +55,6 @@ class HistoryEditor extends CustomEditor {
   }
 }
 
-/**
- * Reverse-search overlay: a query line above a fuzzy-filtered list of prompts.
- * Returns the chosen prompt, or null if cancelled.
- *
- * SelectList only supports prefix filtering and cannot swap its item set, so
- * we drive fuzzy filtering ourselves and rebuild the list when the query
- * changes.
- */
 export class ReverseSearch implements Component {
   private query: string;
   private scope: HistoryScope = 'current';
@@ -252,8 +207,6 @@ export default function (pi: ExtensionAPI) {
   let editor: HistoryEditor | undefined;
 
   const openReverseSearch = async (ctx: ExtensionContext) => {
-    // custom() only renders in TUI mode; it is a no-op elsewhere, and hasUI
-    // is the version-stable guard across pi releases.
     if (!ctx.hasUI || !editor) return;
     const currentPrompts = editor.getHistory();
     const initialQuery = ctx.ui.getEditorText().trim();
@@ -284,7 +237,6 @@ export default function (pi: ExtensionAPI) {
   };
 
   pi.on('session_start', async (_event, ctx) => {
-    // Editor replacement only matters when there is an interactive UI.
     if (!ctx.hasUI) return;
 
     const prompts = await loadPromptHistory({ cwd: ctx.cwd });
