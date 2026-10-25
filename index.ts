@@ -26,7 +26,7 @@ class HistoryEditor extends CustomEditor {
   onReverseSearch?: () => void;
 
   constructor(tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) {
-    super(tui, theme, keybindings);
+    super(tui, theme, keybindings, { embedWorkingStatus: true });
   }
 
   setHistory(prompts: string[]): void {
