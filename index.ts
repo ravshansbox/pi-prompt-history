@@ -135,6 +135,7 @@ export class ReverseSearch implements Component {
         })
         .finally(() => {
           this.loadingAll = false;
+          if (this.scope !== 'all') return;
           this.applyFilter();
           this.tui.requestRender();
         });
