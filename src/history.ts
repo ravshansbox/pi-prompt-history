@@ -30,7 +30,7 @@ function extractText(content: unknown): string {
   return parts.join('\n');
 }
 
-function isRecallablePrompt(text: string): boolean {
+export function isRecallablePrompt(text: string): boolean {
   const trimmed = text.trim();
   if (trimmed.length === 0) return false;
   if (trimmed.startsWith('/')) return false;

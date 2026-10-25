@@ -18,12 +18,10 @@ import {
   Text,
   type TUI,
 } from '@earendil-works/pi-tui';
-import { type HistoryScope, loadPromptHistory } from './src/history.ts';
+import { type HistoryScope, isRecallablePrompt, loadPromptHistory } from './src/history.ts';
 
 class HistoryEditor extends CustomEditor {
   private promptHistory: string[] = [];
-  private sessionPrompts: string[] = [];
-  private seeding = false;
   onReverseSearch?: () => void;
 
   constructor(tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) {
@@ -32,17 +30,11 @@ class HistoryEditor extends CustomEditor {
 
   setHistory(prompts: string[]): void {
     this.promptHistory = [];
-    this.seeding = true;
     for (const prompt of prompts) this.addToHistory(prompt);
-    this.seeding = false;
   }
 
   getHistory(): string[] {
     return this.promptHistory;
-  }
-
-  getSessionPrompts(): string[] {
-    return this.sessionPrompts;
   }
 
   override addToHistory(text: string): void {
@@ -51,7 +43,6 @@ class HistoryEditor extends CustomEditor {
       const existing = this.promptHistory.indexOf(trimmed);
       if (existing !== -1) this.promptHistory.splice(existing, 1);
       this.promptHistory.push(trimmed);
-      if (!this.seeding) this.sessionPrompts.push(trimmed);
     }
     super.addToHistory(text);
   }
@@ -224,6 +215,12 @@ function uniqueNewest(prompts: string[]): string[] {
 
 export default function (pi: ExtensionAPI) {
   let editor: HistoryEditor | undefined;
+  const sessionPrompts: string[] = [];
+
+  pi.on('input', (event) => {
+    const text = event.text.trim();
+    if (event.source === 'interactive' && isRecallablePrompt(text)) sessionPrompts.push(text);
+  });
 
   const openReverseSearch = async (ctx: ExtensionContext) => {
     if (!ctx.hasUI || !editor) return;
@@ -241,7 +238,7 @@ export default function (pi: ExtensionAPI) {
               cwd: ctx.cwd,
               scope: 'all',
             });
-            return uniqueNewest([...diskPrompts, ...(editor?.getSessionPrompts() ?? [])]);
+            return uniqueNewest([...diskPrompts, ...sessionPrompts]);
           },
           tui,
           theme,
@@ -258,6 +255,7 @@ export default function (pi: ExtensionAPI) {
   pi.on('session_start', async (_event, ctx) => {
     if (ctx.mode !== 'tui') return;
 
+    sessionPrompts.length = 0;
     const prompts = await loadPromptHistory({ cwd: ctx.cwd });
 
     ctx.ui.setEditorComponent((tui, theme, keybindings) => {
