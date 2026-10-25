@@ -8,6 +8,7 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import {
   type Component,
+  decodeKittyPrintable,
   type EditorTheme,
   fuzzyFilter,
   matchesKey,
@@ -191,8 +192,9 @@ export class ReverseSearch implements Component {
       }
       return;
     }
-    if (data.length === 1 && data.charCodeAt(0) >= 32) {
-      this.query += data;
+    const typed = decodeKittyPrintable(data) ?? data;
+    if (typed && !/\p{Cc}/u.test(typed)) {
+      this.query += typed;
       this.applyFilter();
       this.tui.requestRender();
       return;

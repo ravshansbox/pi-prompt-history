@@ -63,3 +63,43 @@ test('filters by pasted text', () => {
 
   assert.equal(result, 'deploy app');
 });
+
+test('filters by typed characters outside the basic plane', () => {
+  let result: string | null | undefined;
+  const search = new ReverseSearch(
+    ['ship it 🚀', 'run tests'],
+    '',
+    async () => [],
+    tui,
+    theme,
+    listTheme,
+    (value) => {
+      result = value;
+    },
+  );
+
+  search.handleInput('🚀');
+  search.handleInput('\r');
+
+  assert.equal(result, 'ship it 🚀');
+});
+
+test('filters by characters typed as Kitty key codes', () => {
+  let result: string | null | undefined;
+  const search = new ReverseSearch(
+    ['deploy app', 'run tests'],
+    '',
+    async () => [],
+    tui,
+    theme,
+    listTheme,
+    (value) => {
+      result = value;
+    },
+  );
+
+  search.handleInput('\x1b[100u');
+  search.handleInput('\r');
+
+  assert.equal(result, 'deploy app');
+});
