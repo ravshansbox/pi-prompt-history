@@ -63,4 +63,11 @@ test('skips expanded skill commands from earlier sessions in up history', async 
   await sessionStart?.({ type: 'session_start' }, ctx);
   editor?.handleInput('\x1b[A');
   assert.equal(editor?.getText(), 'first');
+
+  editor?.handleInput('\x1b[B');
+  (editor as Editor & { addToHistory(text: string): void }).addToHistory(
+    '<skill name="demo" location="/skills/demo/SKILL.md">\nbody\n</skill>\n\ndo it',
+  );
+  editor?.handleInput('\x1b[A');
+  assert.equal(editor?.getText(), 'first');
 });

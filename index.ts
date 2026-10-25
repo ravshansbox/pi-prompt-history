@@ -18,7 +18,12 @@ import {
   Text,
   type TUI,
 } from '@earendil-works/pi-tui';
-import { type HistoryScope, isRecallablePrompt, loadPromptHistory } from './src/history.ts';
+import {
+  type HistoryScope,
+  isRecallablePrompt,
+  isSkillBlock,
+  loadPromptHistory,
+} from './src/history.ts';
 
 class HistoryEditor extends CustomEditor {
   private promptHistory: string[] = [];
@@ -39,6 +44,7 @@ class HistoryEditor extends CustomEditor {
 
   override addToHistory(text: string): void {
     const trimmed = text.trim();
+    if (isSkillBlock(trimmed)) return;
     if (trimmed.length > 0 && !trimmed.startsWith('/') && !trimmed.startsWith('!')) {
       const existing = this.promptHistory.indexOf(trimmed);
       if (existing !== -1) this.promptHistory.splice(existing, 1);

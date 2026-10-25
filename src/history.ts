@@ -35,7 +35,11 @@ export function isRecallablePrompt(text: string): boolean {
   if (trimmed.length === 0) return false;
   if (trimmed.startsWith('/')) return false;
   if (trimmed.startsWith('!')) return false;
-  return true;
+  return !isSkillBlock(trimmed);
+}
+
+export function isSkillBlock(text: string): boolean {
+  return text.trim().startsWith('<skill name="');
 }
 
 async function readPromptsFromFile(filePath: string): Promise<string[]> {
@@ -59,7 +63,7 @@ async function readPromptsFromFile(filePath: string): Promise<string[]> {
     if (entry.type !== 'message') continue;
     if (entry.message?.role !== 'user') continue;
     const text = extractText(entry.message.content);
-    if (isRecallablePrompt(text) && !text.startsWith('<skill name="')) prompts.push(text.trim());
+    if (isRecallablePrompt(text)) prompts.push(text.trim());
   }
   return prompts;
 }
