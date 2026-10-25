@@ -43,6 +43,8 @@ class HistoryEditor extends CustomEditor {
       const existing = this.promptHistory.indexOf(trimmed);
       if (existing !== -1) this.promptHistory.splice(existing, 1);
       this.promptHistory.push(trimmed);
+      const base = this as unknown as { history: string[] };
+      base.history = base.history.filter((prompt) => prompt !== trimmed);
     }
     super.addToHistory(text);
   }
