@@ -59,7 +59,7 @@ async function readPromptsFromFile(filePath: string): Promise<string[]> {
     if (entry.type !== 'message') continue;
     if (entry.message?.role !== 'user') continue;
     const text = extractText(entry.message.content);
-    if (isRecallablePrompt(text)) prompts.push(text.trim());
+    if (isRecallablePrompt(text) && !text.startsWith('<skill name="')) prompts.push(text.trim());
   }
   return prompts;
 }
