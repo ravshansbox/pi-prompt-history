@@ -43,3 +43,23 @@ test('keeps the current-folder selection when all-folder history finishes loadin
 
   assert.equal(result, 'older');
 });
+
+test('filters by pasted text', () => {
+  let result: string | null | undefined;
+  const search = new ReverseSearch(
+    ['deploy app', 'run tests'],
+    '',
+    async () => [],
+    tui,
+    theme,
+    listTheme,
+    (value) => {
+      result = value;
+    },
+  );
+
+  search.handleInput('\x1b[200~deploy\x1b[201~');
+  search.handleInput('\r');
+
+  assert.equal(result, 'deploy app');
+});

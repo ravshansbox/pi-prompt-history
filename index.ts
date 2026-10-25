@@ -154,6 +154,13 @@ export class ReverseSearch implements Component {
   }
 
   handleInput(data: string): void {
+    if (data.startsWith('\x1b[200~')) {
+      const pasted = data.replace('\x1b[200~', '').replace('\x1b[201~', '').replace(/\s+/g, ' ');
+      this.query += pasted;
+      this.applyFilter();
+      this.tui.requestRender();
+      return;
+    }
     if (matchesKey(data, 'escape')) {
       this.done(null);
       return;
