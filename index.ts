@@ -21,6 +21,8 @@ import { type HistoryScope, loadPromptHistory } from './src/history.ts';
 
 class HistoryEditor extends CustomEditor {
   private promptHistory: string[] = [];
+  private sessionPrompts: string[] = [];
+  private seeding = false;
   onReverseSearch?: () => void;
 
   constructor(tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) {
@@ -29,11 +31,17 @@ class HistoryEditor extends CustomEditor {
 
   setHistory(prompts: string[]): void {
     this.promptHistory = [];
+    this.seeding = true;
     for (const prompt of prompts) this.addToHistory(prompt);
+    this.seeding = false;
   }
 
   getHistory(): string[] {
     return this.promptHistory;
+  }
+
+  getSessionPrompts(): string[] {
+    return this.sessionPrompts;
   }
 
   override addToHistory(text: string): void {
@@ -42,6 +50,7 @@ class HistoryEditor extends CustomEditor {
       const existing = this.promptHistory.indexOf(trimmed);
       if (existing !== -1) this.promptHistory.splice(existing, 1);
       this.promptHistory.push(trimmed);
+      if (!this.seeding) this.sessionPrompts.push(trimmed);
     }
     super.addToHistory(text);
   }
@@ -223,7 +232,7 @@ export default function (pi: ExtensionAPI) {
               cwd: ctx.cwd,
               scope: 'all',
             });
-            return uniqueNewest([...diskPrompts, ...(editor?.getHistory() ?? [])]);
+            return uniqueNewest([...diskPrompts, ...(editor?.getSessionPrompts() ?? [])]);
           },
           tui,
           theme,
