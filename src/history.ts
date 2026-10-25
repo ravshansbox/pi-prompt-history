@@ -14,6 +14,7 @@ export interface LoadHistoryOptions {
 
 interface RawEntry {
   type?: string;
+  timestamp?: string;
   message?: { role?: string; content?: unknown };
 }
 
@@ -42,7 +43,12 @@ export function isSkillBlock(text: string): boolean {
   return text.trim().startsWith('<skill name="');
 }
 
-async function readPromptsFromFile(filePath: string): Promise<string[]> {
+interface TimedPrompt {
+  text: string;
+  time: number;
+}
+
+async function readPromptsFromFile(filePath: string, fallbackTime: number): Promise<TimedPrompt[]> {
   let raw: string;
   try {
     raw = await readFile(filePath, 'utf-8');
@@ -50,7 +56,7 @@ async function readPromptsFromFile(filePath: string): Promise<string[]> {
     return [];
   }
 
-  const prompts: string[] = [];
+  const prompts: TimedPrompt[] = [];
   for (const line of raw.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed) continue;
@@ -63,7 +69,10 @@ async function readPromptsFromFile(filePath: string): Promise<string[]> {
     if (entry.type !== 'message') continue;
     if (entry.message?.role !== 'user') continue;
     const text = extractText(entry.message.content);
-    if (isRecallablePrompt(text)) prompts.push(text.trim());
+    const time = Date.parse(entry.timestamp ?? '');
+    if (isRecallablePrompt(text)) {
+      prompts.push({ text: text.trim(), time: Number.isNaN(time) ? fallbackTime : time });
+    }
   }
   return prompts;
 }
@@ -83,12 +92,11 @@ export async function loadPromptHistory(options: LoadHistoryOptions): Promise<st
 
   const ordered = [...sessions].sort((a, b) => a.modified.getTime() - b.modified.getTime());
 
-  const all: string[] = [];
+  const timed: TimedPrompt[] = [];
   for (const session of ordered) {
-    for (const prompt of await readPromptsFromFile(session.path)) {
-      all.push(prompt);
-    }
+    timed.push(...(await readPromptsFromFile(session.path, session.modified.getTime())));
   }
+  const all = timed.sort((a, b) => a.time - b.time).map((prompt) => prompt.text);
 
   const seen = new Set<string>();
   const newestFirst: string[] = [];
