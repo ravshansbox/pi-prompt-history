@@ -28,6 +28,7 @@ test('shows the working status in the editor border', async () => {
   let editor: (Component & { setWorkingStatusIndicator(indicator: unknown): void }) | undefined;
   const ctx = {
     hasUI: true,
+    mode: 'tui',
     cwd: agentDir,
     ui: {
       setEditorComponent: (factory: (...args: unknown[]) => typeof editor) => {

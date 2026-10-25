@@ -50,6 +50,7 @@ test('orders all-folder history by recency across folders', async () => {
   let search: Component | undefined;
   const ctx = {
     hasUI: true,
+    mode: 'tui',
     cwd: here,
     ui: {
       getEditorText: () => '',
