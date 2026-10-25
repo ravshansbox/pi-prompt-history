@@ -186,7 +186,7 @@ export class ReverseSearch implements Component {
     }
     if (matchesKey(data, 'backspace')) {
       if (this.query.length > 0) {
-        this.query = this.query.slice(0, -1);
+        this.query = Array.from(this.query).slice(0, -1).join('');
         this.applyFilter();
         this.tui.requestRender();
       }

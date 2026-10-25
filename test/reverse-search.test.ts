@@ -84,6 +84,28 @@ test('filters by typed characters outside the basic plane', () => {
   assert.equal(result, 'ship it 🚀');
 });
 
+test('removes a whole character outside the basic plane on backspace', () => {
+  let result: string | null | undefined;
+  const search = new ReverseSearch(
+    ['ship it 🚀', 'run tests'],
+    '',
+    async () => [],
+    tui,
+    theme,
+    listTheme,
+    (value) => {
+      result = value;
+    },
+  );
+
+  search.handleInput('r');
+  search.handleInput('🚀');
+  search.handleInput('\x7f');
+  search.handleInput('\r');
+
+  assert.equal(result, 'run tests');
+});
+
 test('filters by characters typed as Kitty key codes', () => {
   let result: string | null | undefined;
   const search = new ReverseSearch(
