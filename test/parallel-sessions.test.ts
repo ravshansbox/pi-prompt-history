@@ -7,6 +7,7 @@ import {
   type ExtensionAPI,
   type ExtensionContext,
   initTheme,
+  SessionManager,
 } from '@earendil-works/pi-coding-agent';
 import type { Component } from '@earendil-works/pi-tui';
 import extension from '../index.ts';
@@ -59,6 +60,7 @@ test('orders prompts from sessions run side by side by when they were sent', asy
     hasUI: true,
     mode: 'tui',
     cwd: here,
+    sessionManager: SessionManager.create(here),
     ui: {
       getEditorText: () => '',
       setEditorText: () => {},

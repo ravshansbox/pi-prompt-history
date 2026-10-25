@@ -7,6 +7,7 @@ import {
   type ExtensionAPI,
   type ExtensionContext,
   initTheme,
+  SessionManager,
 } from '@earendil-works/pi-coding-agent';
 import type { Component } from '@earendil-works/pi-tui';
 import extension from '../index.ts';
@@ -49,6 +50,7 @@ test('skips expanded skill commands from earlier sessions in up history', async 
     hasUI: true,
     mode: 'tui',
     cwd,
+    sessionManager: SessionManager.create(cwd),
     ui: {
       setEditorComponent: (factory: (...args: unknown[]) => Editor) => {
         editor = factory(

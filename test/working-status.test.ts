@@ -7,6 +7,7 @@ import {
   type ExtensionAPI,
   type ExtensionContext,
   initTheme,
+  SessionManager,
 } from '@earendil-works/pi-coding-agent';
 import type { Component } from '@earendil-works/pi-tui';
 import extension from '../index.ts';
@@ -30,6 +31,7 @@ test('shows the working status in the editor border', async () => {
     hasUI: true,
     mode: 'tui',
     cwd: agentDir,
+    sessionManager: SessionManager.create(agentDir),
     ui: {
       setEditorComponent: (factory: (...args: unknown[]) => typeof editor) => {
         editor = factory(tui, { borderColor: (text: string) => text, selectList: {} }, {});

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { SessionManager } from '@earendil-works/pi-coding-agent';
+import { dirname, join, resolve } from 'node:path';
+import { getAgentDir, SessionManager } from '@earendil-works/pi-coding-agent';
 
 export const DEFAULT_HISTORY_LIMIT = 500;
 
@@ -77,6 +78,12 @@ async function readPromptsFromFile(filePath: string, fallbackTime: number): Prom
   return prompts;
 }
 
+function listAllSessions(sessionDir: string | undefined) {
+  if (sessionDir === undefined) return SessionManager.listAll();
+  const usesDefault = resolve(dirname(sessionDir)) === resolve(join(getAgentDir(), 'sessions'));
+  return usesDefault ? SessionManager.listAll() : SessionManager.listAll(sessionDir);
+}
+
 export async function loadPromptHistory(options: LoadHistoryOptions): Promise<string[]> {
   const limit = options.limit ?? DEFAULT_HISTORY_LIMIT;
 
@@ -84,7 +91,7 @@ export async function loadPromptHistory(options: LoadHistoryOptions): Promise<st
   try {
     sessions =
       options.scope === 'all'
-        ? await SessionManager.listAll(options.sessionDir)
+        ? await listAllSessions(options.sessionDir)
         : await SessionManager.list(options.cwd, options.sessionDir);
   } catch {
     return [];

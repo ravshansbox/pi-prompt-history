@@ -7,6 +7,7 @@ import {
   type ExtensionAPI,
   type ExtensionContext,
   initTheme,
+  SessionManager,
 } from '@earendil-works/pi-coding-agent';
 import type { Component } from '@earendil-works/pi-tui';
 import extension from '../index.ts';
@@ -35,6 +36,7 @@ test('recalls a prompt sent again only at its newest position with up', async ()
     hasUI: true,
     mode: 'tui',
     cwd: agentDir,
+    sessionManager: SessionManager.create(agentDir),
     ui: {
       setEditorComponent: (factory: (...args: unknown[]) => Editor) => {
         editor = factory(

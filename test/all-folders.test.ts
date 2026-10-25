@@ -7,6 +7,7 @@ import {
   type ExtensionAPI,
   type ExtensionContext,
   initTheme,
+  SessionManager,
 } from '@earendil-works/pi-coding-agent';
 import type { Component } from '@earendil-works/pi-tui';
 import extension from '../index.ts';
@@ -52,6 +53,7 @@ test('orders all-folder history by recency across folders', async () => {
     hasUI: true,
     mode: 'tui',
     cwd: here,
+    sessionManager: SessionManager.create(here),
     ui: {
       getEditorText: () => '',
       setEditorText: () => {},

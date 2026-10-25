@@ -244,6 +244,7 @@ export default function (pi: ExtensionAPI) {
           async () => {
             const diskPrompts = await loadPromptHistory({
               cwd: ctx.cwd,
+              sessionDir: ctx.sessionManager.getSessionDir(),
               scope: 'all',
             });
             return uniqueNewest([...diskPrompts, ...sessionPrompts]);
@@ -264,7 +265,10 @@ export default function (pi: ExtensionAPI) {
     if (ctx.mode !== 'tui') return;
 
     sessionPrompts.length = 0;
-    const prompts = await loadPromptHistory({ cwd: ctx.cwd });
+    const prompts = await loadPromptHistory({
+      cwd: ctx.cwd,
+      sessionDir: ctx.sessionManager.getSessionDir(),
+    });
 
     ctx.ui.setEditorComponent((tui, theme, keybindings) => {
       const next = new HistoryEditor(tui, theme, keybindings);
