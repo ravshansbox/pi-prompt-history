@@ -11,6 +11,7 @@ export interface LoadHistoryOptions {
   sessionDir?: string;
   scope?: HistoryScope;
   limit?: number;
+  extra?: TimedPrompt[];
 }
 
 interface RawEntry {
@@ -44,7 +45,7 @@ export function isSkillBlock(text: string): boolean {
   return text.trim().startsWith('<skill name="');
 }
 
-interface TimedPrompt {
+export interface TimedPrompt {
   text: string;
   time: number;
 }
@@ -99,7 +100,7 @@ export async function loadPromptHistory(options: LoadHistoryOptions): Promise<st
 
   const ordered = [...sessions].sort((a, b) => a.modified.getTime() - b.modified.getTime());
 
-  const timed: TimedPrompt[] = [];
+  const timed: TimedPrompt[] = [...(options.extra ?? [])];
   for (const session of ordered) {
     timed.push(...(await readPromptsFromFile(session.path, session.modified.getTime())));
   }

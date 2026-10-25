@@ -23,6 +23,7 @@ import {
   isRecallablePrompt,
   isSkillBlock,
   loadPromptHistory,
+  type TimedPrompt,
 } from './src/history.ts';
 
 class HistoryEditor extends CustomEditor {
@@ -210,24 +211,14 @@ export class ReverseSearch implements Component {
   }
 }
 
-function uniqueNewest(prompts: string[]): string[] {
-  const seen = new Set<string>();
-  const newestFirst: string[] = [];
-  for (const prompt of [...prompts].reverse()) {
-    if (seen.has(prompt)) continue;
-    seen.add(prompt);
-    newestFirst.push(prompt);
-  }
-  return newestFirst.reverse();
-}
-
 export default function (pi: ExtensionAPI) {
   let editor: HistoryEditor | undefined;
-  const sessionPrompts: string[] = [];
+  const sessionPrompts: TimedPrompt[] = [];
 
   pi.on('input', (event) => {
     const text = event.text.trim();
-    if (event.source === 'interactive' && isRecallablePrompt(text)) sessionPrompts.push(text);
+    if (event.source === 'interactive' && isRecallablePrompt(text))
+      sessionPrompts.push({ text, time: Date.now() });
   });
 
   const openReverseSearch = async (ctx: ExtensionContext) => {
@@ -241,14 +232,13 @@ export default function (pi: ExtensionAPI) {
         new ReverseSearch(
           currentPrompts,
           initialQuery,
-          async () => {
-            const diskPrompts = await loadPromptHistory({
+          () =>
+            loadPromptHistory({
               cwd: ctx.cwd,
               sessionDir: ctx.sessionManager.getSessionDir(),
               scope: 'all',
-            });
-            return uniqueNewest([...diskPrompts, ...sessionPrompts]);
-          },
+              extra: sessionPrompts,
+            }),
           tui,
           theme,
           listTheme,
