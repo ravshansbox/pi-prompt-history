@@ -28,6 +28,7 @@ import {
 
 class HistoryEditor extends CustomEditor {
   private promptHistory: string[] = [];
+  private submitting = false;
   onReverseSearch?: () => void;
 
   constructor(tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) {
@@ -48,6 +49,7 @@ class HistoryEditor extends CustomEditor {
     if (isSkillBlock(trimmed)) return;
     if (trimmed.length > 0 && !trimmed.startsWith('/') && !trimmed.startsWith('!')) {
       const existing = this.promptHistory.indexOf(trimmed);
+      if (existing !== -1 && !this.submitting) return;
       if (existing !== -1) this.promptHistory.splice(existing, 1);
       this.promptHistory.push(trimmed);
       const base = this as unknown as { history: string[] };
@@ -61,7 +63,12 @@ class HistoryEditor extends CustomEditor {
       this.onReverseSearch?.();
       return;
     }
-    super.handleInput(data);
+    this.submitting = true;
+    try {
+      super.handleInput(data);
+    } finally {
+      this.submitting = false;
+    }
   }
 }
 

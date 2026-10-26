@@ -22,7 +22,7 @@ Pi loads the extension from `./index.ts`. When pi starts, it loads the user prom
 - **Scope:** Up/Down recall and the default Ctrl+R tab use sessions started in the current folder (via `SessionManager.list(cwd, sessionDir)`). Ctrl+R also has an **All folders** tab backed by `SessionManager.listAll()`, or by the custom session folder when pi uses one.
 - **Filtering:** empty input, slash-commands (`/...`, including expanded `/skill:` commands), and inline bash (`!`, `!!`) are skipped, matching shell history hygiene.
 - **De-duplication:** global — repeated prompts collapse to their most recent position.
-- **Ordering:** chronological, so the first Up press recalls your newest prompt.
+- **Ordering:** chronological, so the first Up press recalls your newest prompt. Prompts that pi replays when you resume a session or move in the tree keep their place.
 - **Limits:** each reverse search scope covers up to the 500 most recent unique prompts. Up/Down uses pi's built-in history ring, which keeps the most recent ~100 prompts plus anything you type during the session.
 - New prompts you submit during the session are added to history immediately.
 

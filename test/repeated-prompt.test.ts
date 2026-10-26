@@ -53,7 +53,9 @@ test('recalls a prompt sent again only at its newest position with up', async ()
   await sessionStart?.({ type: 'session_start' }, ctx);
   editor?.addToHistory('first');
   editor?.addToHistory('second');
-  editor?.addToHistory('first');
+  (editor as Editor & { onSubmit?: (text: string) => void }).onSubmit = (text) =>
+    editor?.addToHistory(text);
+  for (const key of 'first\r') editor?.handleInput(key);
 
   editor?.handleInput('\x1b[A');
   assert.equal(editor?.getText(), 'first');
