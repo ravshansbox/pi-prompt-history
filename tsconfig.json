@@ -16,7 +16,8 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "erasableSyntaxOnly": true
   },
   "include": ["index.ts", "src/**/*.ts", "test/**/*.ts"]
 }

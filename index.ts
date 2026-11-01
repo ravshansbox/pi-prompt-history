@@ -79,16 +79,26 @@ export class ReverseSearch implements Component {
   private loadingAll = false;
   private list: SelectList;
   private readonly header: Text;
+  private readonly loadAllPrompts: () => Promise<string[]>;
+  private readonly tui: TUI;
+  private readonly theme: Theme;
+  private readonly listTheme: SelectListTheme;
+  private readonly done: (value: string | null) => void;
 
   constructor(
     currentPrompts: string[],
     initialQuery: string,
-    private readonly loadAllPrompts: () => Promise<string[]>,
-    private readonly tui: TUI,
-    private readonly theme: Theme,
-    private readonly listTheme: SelectListTheme,
-    private readonly done: (value: string | null) => void,
+    loadAllPrompts: () => Promise<string[]>,
+    tui: TUI,
+    theme: Theme,
+    listTheme: SelectListTheme,
+    done: (value: string | null) => void,
   ) {
+    this.loadAllPrompts = loadAllPrompts;
+    this.tui = tui;
+    this.theme = theme;
+    this.listTheme = listTheme;
+    this.done = done;
     this.query = initialQuery.trim();
     this.prompts = { current: currentPrompts, all: undefined };
     this.header = new Text('', 1, 0);
