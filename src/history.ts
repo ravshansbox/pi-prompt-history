@@ -6,7 +6,7 @@ export const DEFAULT_HISTORY_LIMIT = 500;
 
 export type HistoryScope = 'current' | 'all';
 
-export interface LoadHistoryOptions {
+export interface LoadHistoryOptions extends RecallOptions {
   cwd: string;
   sessionDir?: string;
   scope?: HistoryScope;
@@ -33,16 +33,51 @@ function extractText(content: unknown): string {
   return parts.join('\n');
 }
 
-export function isRecallablePrompt(text: string): boolean {
+export interface RecallOptions {
+  /**
+   * Recall expanded `/skill:name args` blocks as the command that produced
+   * them, instead of skipping them. Off by default: an expanded block repeats
+   * the whole skill body, which would crowd out everything else in a short
+   * history ring.
+   */
+  recallSkillCommands?: boolean;
+}
+
+const SKILL_BLOCK_START = '<skill name="';
+const SKILL_BLOCK_END = '</skill>';
+const SKILL_NAME = /^<skill name="([^"]+)"/;
+
+/**
+ * Reduce a prompt to the form worth recalling, or null when it should stay out
+ * of history. With `recallSkillCommands`, an expanded block becomes the
+ * `/skill:name args` command that produced it, so the instructions are not
+ * stored in history and the tail the user typed is kept.
+ */
+export function normalizePrompt(text: string, options: RecallOptions = {}): string | null {
   const trimmed = text.trim();
-  if (trimmed.length === 0) return false;
-  if (trimmed.startsWith('/')) return false;
-  if (trimmed.startsWith('!')) return false;
-  return !isSkillBlock(trimmed);
+  if (trimmed.length === 0) return null;
+  if (trimmed.startsWith('/')) {
+    if (!options.recallSkillCommands || !trimmed.startsWith('/skill:')) return null;
+    return trimmed;
+  }
+  if (trimmed.startsWith('!')) return null;
+  if (!trimmed.startsWith(SKILL_BLOCK_START)) return trimmed;
+  if (!options.recallSkillCommands) return null;
+
+  const name = SKILL_NAME.exec(trimmed)?.[1];
+  const end = trimmed.lastIndexOf(SKILL_BLOCK_END);
+  if (name === undefined || end === -1) return null;
+
+  const args = trimmed.slice(end + SKILL_BLOCK_END.length).trim();
+  return `/skill:${name}${args.length > 0 ? ` ${args}` : ''}`;
+}
+
+export function isRecallablePrompt(text: string, options: RecallOptions = {}): boolean {
+  return normalizePrompt(text, options) !== null;
 }
 
 export function isSkillBlock(text: string): boolean {
-  return text.trim().startsWith('<skill name="');
+  return text.trim().startsWith(SKILL_BLOCK_START);
 }
 
 export interface TimedPrompt {
@@ -50,7 +85,11 @@ export interface TimedPrompt {
   time: number;
 }
 
-async function readPromptsFromFile(filePath: string, fallbackTime: number): Promise<TimedPrompt[]> {
+async function readPromptsFromFile(
+  filePath: string,
+  fallbackTime: number,
+  options: RecallOptions,
+): Promise<TimedPrompt[]> {
   let raw: string;
   try {
     raw = await readFile(filePath, 'utf-8');
@@ -70,10 +109,10 @@ async function readPromptsFromFile(filePath: string, fallbackTime: number): Prom
     }
     if (entry.type !== 'message') continue;
     if (entry.message?.role !== 'user') continue;
-    const text = extractText(entry.message.content);
+    const prompt = normalizePrompt(extractText(entry.message.content), options);
     const time = Date.parse(entry.timestamp ?? '');
-    if (isRecallablePrompt(text)) {
-      prompts.push({ text: text.trim(), time: Number.isNaN(time) ? fallbackTime : time });
+    if (prompt !== null) {
+      prompts.push({ text: prompt, time: Number.isNaN(time) ? fallbackTime : time });
     }
   }
   return prompts;
@@ -102,7 +141,7 @@ export async function loadPromptHistory(options: LoadHistoryOptions): Promise<st
 
   const timed: TimedPrompt[] = [...(options.extra ?? [])];
   for (const session of ordered) {
-    timed.push(...(await readPromptsFromFile(session.path, session.modified.getTime())));
+    timed.push(...(await readPromptsFromFile(session.path, session.modified.getTime(), options)));
   }
   const all = timed.sort((a, b) => a.time - b.time).map((prompt) => prompt.text);
 
