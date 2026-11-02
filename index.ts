@@ -20,22 +20,39 @@ import {
 } from '@earendil-works/pi-tui';
 import {
   type HistoryScope,
-  isRecallablePrompt,
   isSkillBlock,
   loadPromptHistory,
+  normalizePrompt,
+  type RecallOptions,
   type TimedPrompt,
 } from './src/history.ts';
+
+interface PromptHistorySettings {
+  piPromptHistory?: { recallSkillCommands?: unknown };
+}
+
+/** Opt-in: recall `/skill:name args` as the command instead of skipping it. */
+function readRecallSkillCommands(pi: ExtensionAPI): boolean {
+  try {
+    const api = pi as unknown as { getSettings?: () => PromptHistorySettings };
+    return api.getSettings?.().piPromptHistory?.recallSkillCommands === true;
+  } catch {
+    return false;
+  }
+}
 
 class HistoryEditor extends CustomEditor {
   private promptHistory: string[] = [];
   private submitting = false;
+  private recallSkillCommands = false;
   onReverseSearch?: () => void;
 
   constructor(tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) {
     super(tui, theme, keybindings, { embedWorkingStatus: true });
   }
 
-  setHistory(prompts: string[]): void {
+  setHistory(prompts: string[], options: RecallOptions = {}): void {
+    this.recallSkillCommands = options.recallSkillCommands === true;
     this.promptHistory = [];
     for (const prompt of prompts) this.addToHistory(prompt);
   }
@@ -46,16 +63,21 @@ class HistoryEditor extends CustomEditor {
 
   override addToHistory(text: string): void {
     const trimmed = text.trim();
-    if (isSkillBlock(trimmed)) return;
-    if (trimmed.length > 0 && !trimmed.startsWith('/') && !trimmed.startsWith('!')) {
-      const existing = this.promptHistory.indexOf(trimmed);
-      if (existing !== -1 && !this.submitting) return;
-      if (existing !== -1) this.promptHistory.splice(existing, 1);
-      this.promptHistory.push(trimmed);
-      const base = this as unknown as { history: string[] };
-      base.history = base.history.filter((prompt) => prompt !== trimmed);
+    if (isSkillBlock(trimmed) && !this.recallSkillCommands) return;
+    const prompt = normalizePrompt(trimmed, {
+      recallSkillCommands: this.recallSkillCommands,
+    });
+    if (prompt === null) {
+      super.addToHistory(text);
+      return;
     }
-    super.addToHistory(text);
+    const existing = this.promptHistory.indexOf(prompt);
+    if (existing !== -1 && !this.submitting) return;
+    if (existing !== -1) this.promptHistory.splice(existing, 1);
+    this.promptHistory.push(prompt);
+    const base = this as unknown as { history: string[] };
+    base.history = base.history.filter((entry) => entry !== prompt);
+    super.addToHistory(prompt);
   }
 
   override handleInput(data: string): void {
@@ -230,12 +252,13 @@ export class ReverseSearch implements Component {
 
 export default function (pi: ExtensionAPI) {
   let editor: HistoryEditor | undefined;
+  let recallSkillCommands = false;
   const sessionPrompts: TimedPrompt[] = [];
 
   pi.on('input', (event) => {
-    const text = event.text.trim();
-    if (event.source === 'interactive' && isRecallablePrompt(text))
-      sessionPrompts.push({ text, time: Date.now() });
+    const prompt = normalizePrompt(event.text, { recallSkillCommands });
+    if (event.source === 'interactive' && prompt !== null)
+      sessionPrompts.push({ text: prompt, time: Date.now() });
   });
 
   const openReverseSearch = async (ctx: ExtensionContext) => {
@@ -254,6 +277,7 @@ export default function (pi: ExtensionAPI) {
               cwd: ctx.cwd,
               sessionDir: ctx.sessionManager.getSessionDir(),
               scope: 'all',
+              recallSkillCommands,
               extra: sessionPrompts,
             }),
           tui,
@@ -272,14 +296,16 @@ export default function (pi: ExtensionAPI) {
     if (ctx.mode !== 'tui') return;
 
     sessionPrompts.length = 0;
+    recallSkillCommands = readRecallSkillCommands(pi);
     const prompts = await loadPromptHistory({
       cwd: ctx.cwd,
       sessionDir: ctx.sessionManager.getSessionDir(),
+      recallSkillCommands,
     });
 
     ctx.ui.setEditorComponent((tui, theme, keybindings) => {
       const next = new HistoryEditor(tui, theme, keybindings);
-      next.setHistory(prompts);
+      next.setHistory(prompts, { recallSkillCommands });
       next.onReverseSearch = () => {
         void openReverseSearch(ctx);
       };
