@@ -33,12 +33,25 @@ function extractText(content: unknown): string {
   return parts.join('\n');
 }
 
-export function isRecallablePrompt(text: string): boolean {
+// Expanded skill blocks are recalled as the `/skill:name [args]` command that produced them.
+const SKILL_BLOCK_RE =
+  /^<skill name="([^"]+)" location="[^"]+">\n[\s\S]*?\n<\/skill>(?:\n\n([\s\S]+))?$/;
+
+export function toRecallable(text: string): string | null {
   const trimmed = text.trim();
-  if (trimmed.length === 0) return false;
-  if (trimmed.startsWith('/')) return false;
-  if (trimmed.startsWith('!')) return false;
-  return !isSkillBlock(trimmed);
+  if (trimmed.length === 0) return null;
+  if (trimmed.startsWith('!')) return null;
+  if (isSkillBlock(trimmed)) {
+    const match = trimmed.match(SKILL_BLOCK_RE);
+    if (!match) return null;
+    const args = match[2]?.trim();
+    return args ? `/skill:${match[1]} ${args}` : `/skill:${match[1]}`;
+  }
+  return trimmed;
+}
+
+export function isRecallablePrompt(text: string): boolean {
+  return toRecallable(text) !== null;
 }
 
 export function isSkillBlock(text: string): boolean {
@@ -70,10 +83,10 @@ async function readPromptsFromFile(filePath: string, fallbackTime: number): Prom
     }
     if (entry.type !== 'message') continue;
     if (entry.message?.role !== 'user') continue;
-    const text = extractText(entry.message.content);
+    const text = toRecallable(extractText(entry.message.content));
     const time = Date.parse(entry.timestamp ?? '');
-    if (isRecallablePrompt(text)) {
-      prompts.push({ text: text.trim(), time: Number.isNaN(time) ? fallbackTime : time });
+    if (text !== null) {
+      prompts.push({ text, time: Number.isNaN(time) ? fallbackTime : time });
     }
   }
   return prompts;

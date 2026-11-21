@@ -12,7 +12,7 @@ import {
 import type { Component } from '@earendil-works/pi-tui';
 import extension from '../index.ts';
 
-test('skips expanded skill commands from earlier sessions in up history', async () => {
+test('recalls expanded skill blocks as /skill: commands and keeps slash prompts', async () => {
   initTheme('dark');
   const agentDir = mkdtempSync(join(tmpdir(), 'pi-prompt-history-'));
   process.env['PI_CODING_AGENT_DIR'] = agentDir;
@@ -22,6 +22,9 @@ test('skips expanded skill commands from earlier sessions in up history', async 
   const timestamp = '2025-01-01T00:00:00.000Z';
   const prompts = [
     'first',
+    '/review src',
+    '!ls',
+    '<skill name="demo" location="/skills/demo/SKILL.md">\nReferences are relative to /skills/demo.\n\nbody\n</skill>',
     '<skill name="demo" location="/skills/demo/SKILL.md">\nReferences are relative to /skills/demo.\n\nbody\n</skill>\n\ndo it',
   ];
   const lines = [
@@ -64,12 +67,21 @@ test('skips expanded skill commands from earlier sessions in up history', async 
 
   await sessionStart?.({ type: 'session_start' }, ctx);
   editor?.handleInput('\x1b[A');
+  assert.equal(editor?.getText(), '/skill:demo do it');
+  editor?.handleInput('\x1b[A');
+  assert.equal(editor?.getText(), '/skill:demo');
+  editor?.handleInput('\x1b[A');
+  assert.equal(editor?.getText(), '/review src');
+  editor?.handleInput('\x1b[A');
   assert.equal(editor?.getText(), 'first');
 
-  editor?.handleInput('\x1b[B');
+  for (let i = 0; i < 4; i++) editor?.handleInput('\x1b[B');
+  assert.equal(editor?.getText(), '');
   (editor as Editor & { addToHistory(text: string): void }).addToHistory(
     '<skill name="demo" location="/skills/demo/SKILL.md">\nbody\n</skill>\n\ndo it',
   );
   editor?.handleInput('\x1b[A');
-  assert.equal(editor?.getText(), 'first');
+  assert.equal(editor?.getText(), '/skill:demo do it');
+  editor?.handleInput('\x1b[A');
+  assert.equal(editor?.getText(), '/skill:demo');
 });

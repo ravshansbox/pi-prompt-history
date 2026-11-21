@@ -24,6 +24,7 @@ import {
   isSkillBlock,
   loadPromptHistory,
   type TimedPrompt,
+  toRecallable,
 } from './src/history.ts';
 
 class HistoryEditor extends CustomEditor {
@@ -45,17 +46,19 @@ class HistoryEditor extends CustomEditor {
   }
 
   override addToHistory(text: string): void {
-    const trimmed = text.trim();
-    if (isSkillBlock(trimmed)) return;
-    if (trimmed.length > 0 && !trimmed.startsWith('/') && !trimmed.startsWith('!')) {
-      const existing = this.promptHistory.indexOf(trimmed);
-      if (existing !== -1 && !this.submitting) return;
-      if (existing !== -1) this.promptHistory.splice(existing, 1);
-      this.promptHistory.push(trimmed);
-      const base = this as unknown as { history: string[] };
-      base.history = base.history.filter((prompt) => prompt !== trimmed);
+    // Skill blocks are stored as their `/skill:` command; slash prompts are kept.
+    const recall = toRecallable(text);
+    if (recall === null) {
+      if (!isSkillBlock(text)) super.addToHistory(text);
+      return;
     }
-    super.addToHistory(text);
+    const existing = this.promptHistory.indexOf(recall);
+    if (existing !== -1 && !this.submitting) return;
+    if (existing !== -1) this.promptHistory.splice(existing, 1);
+    this.promptHistory.push(recall);
+    const base = this as unknown as { history: string[] };
+    base.history = base.history.filter((prompt) => prompt !== recall);
+    super.addToHistory(recall);
   }
 
   override handleInput(data: string): void {
